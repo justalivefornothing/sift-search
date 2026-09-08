@@ -27,6 +27,11 @@ Instant-search products feel like magic: you mistype "matrx" and *The Matrix* is
 - **Zero-results state** with "did you mean" suggestions from the trie, verified against the index so only queries that actually return hits are offered.
 - Light-first developer-tool UI with automatic dark mode (`prefers-color-scheme`), self-hosted Inter + JetBrains Mono, responsive down to ~380 px.
 
+<p align="center">
+  <img src="docs/screenshot-playground.png" alt="API playground drawer: editable POST body on the left, raw engine JSON response on the right" width="49%" />
+  <img src="docs/screenshot-mobile.png" alt="Dark mode at 380px: zero results for mtrxi with a did-you-mean suggestion" width="23%" />
+</p>
+
 ## How it works
 
 ```mermaid

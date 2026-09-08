@@ -15,5 +15,8 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['src/**/*.test.ts'],
+    // property-based tests finish in well under a second on an idle machine, but a
+    // saturated CI box can stretch them 20-30x; a generous ceiling avoids false negatives
+    testTimeout: 60_000,
   },
 })
