@@ -12,7 +12,7 @@ Instant-search products feel like magic: you mistype "matrx" and *The Matrix* is
 
 ## Features
 
-- **10,000-record bundled dataset** — generated deterministically by `scripts/generate-dataset.ts` (seeded xoshiro128\*\*), so the repo needs no network. 30 hand-written anchor titles (The Matrix, Blade Runner, Amélie…) plus 9,970 procedurally assembled movie-style records with title, logline, genres, year, rating and popularity.
+- **10,000-record bundled dataset** — generated deterministically by `scripts/generate-dataset.ts` (seeded xoshiro128\*\*), so the repo needs no network. A few dozen hand-written anchor titles (The Matrix, Blade Runner, Amélie…) plus procedurally assembled movie-style records with title, logline, genres, year, rating and popularity.
 - **Unicode-aware tokenizer** — NFKD fold, diacritics stripped (`Amélie` → `amelie`, `ﬁ` → `fi`), lowercase, camelCase and hyphen splitting (`BladeRunner`, `sci-fi`), apostrophes as joiners (`Ocean's` → `oceans`). Token offsets point into the *original* string so highlights preserve case and accents.
 - **Positional inverted index** — per-attribute postings (`title`, `genres`, `description`) with token positions, built as a two-pass counting sort over typed arrays.
 - **Compressed radix trie** with prefix enumeration and **bounded Damerau-Levenshtein traversal** (row-by-row DP carried down trie edges, subtree pruning when the row minimum exceeds the budget). 1 typo for words ≥ 4 chars, 2 for ≥ 8. In prefix mode a term matches if *any* prefix of it is within budget — what search-as-you-type needs for the word being typed.
