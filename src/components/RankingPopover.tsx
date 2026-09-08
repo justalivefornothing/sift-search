@@ -110,9 +110,9 @@ export function RankingPopover({ hit, rank, onClose }: { hit: Hit; rank: number;
               <span className="flex items-center gap-1.5">
                 <span className={isBreak ? 'font-medium' : ''}>{LABELS[c]}</span>
                 <span className="font-mono text-[10px] text-muted">{CRITERION_DIRECTION[c] === 'lower' ? '↓' : '↑'}</span>
-                {isBreak && <span className="rounded bg-accent px-1 py-px font-mono text-[9.5px] font-medium text-accent-ink uppercase">tie-break</span>}
+                {isBreak && <span className="rounded bg-accent px-1 py-px font-mono text-[9.5px] font-medium text-accent-ink uppercase whitespace-nowrap">tie-break</span>}
               </span>
-              <span className="font-mono tnum">
+              <span className="text-right font-mono tnum">
                 {c === 'proximity' && info.words < 2 ? 'n/a' : c === 'attribute' && info.attributeName === 'none' ? '—' : formatValue(c, info[c])}
                 {isBreak && tb && <span className="text-muted"> vs {formatValue(c, tb.previous)}</span>}
               </span>

@@ -56,6 +56,7 @@ async function init(url: string): Promise<void> {
     const t2 = performance.now()
     post({ type: 'progress', phase: 'indexing', loadedBytes: 0, totalBytes: records.length })
     index = new SearchIndex(records)
+    warmUp(index)
     post({
       type: 'ready',
       stats: index.stats,
@@ -66,6 +67,13 @@ async function init(url: string): Promise<void> {
     post({ type: 'error', message: err instanceof Error ? err.message : String(err) })
   } finally {
     initializing = false
+  }
+}
+
+/** A few representative queries so the JIT has compiled the hot paths before the first keystroke. */
+function warmUp(idx: SearchIndex): void {
+  for (const query of ['a', 'the', 'matrx', 'blade runer', 'lo']) {
+    idx.search({ query, facets: ['genre', 'decade', 'rating'] })
   }
 }
 
