@@ -118,6 +118,7 @@ export function Playground() {
       <section
         id="sift-playground-panel"
         aria-hidden={!open}
+        inert={!open}
         className="border-t border-line bg-surface shadow-[0_-12px_40px_-20px_rgb(20_20_30/0.35)]"
       >
         <div className="mx-auto grid max-w-[1200px] grid-cols-1 gap-px bg-line md:grid-cols-2" style={{ height: 'min(46vh, 420px)' }}>
@@ -162,7 +163,6 @@ export function Playground() {
               onChange={(e) => setBody(e.target.value)}
               onKeyDown={onEditorKey}
               spellCheck={false}
-              tabIndex={open ? 0 : -1}
               className={`scrollbar-thin min-h-0 flex-1 resize-none bg-transparent p-3 font-mono text-[12.5px] leading-relaxed text-ink outline-none ${
                 playground.error ? 'bg-danger/5' : ''
               }`}
@@ -191,7 +191,7 @@ export function Playground() {
               </div>
               <CopyButton text={responseText} label="Copy response JSON" />
             </div>
-            <pre className="scrollbar-thin min-h-0 flex-1 overflow-auto p-3 font-mono text-[12px] leading-relaxed text-ink-2" tabIndex={open ? 0 : -1}>
+            <pre className="scrollbar-thin min-h-0 flex-1 overflow-auto p-3 font-mono text-[12px] leading-relaxed text-ink-2" tabIndex={0}>
               <code>{responseText || '// run a query to see the raw engine response'}</code>
             </pre>
           </div>
