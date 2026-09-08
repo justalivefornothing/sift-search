@@ -2,9 +2,30 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>sift-search</title>
+    <title>Sift — typo-tolerant search-as-you-type in a Web Worker</title>
+    <meta
+      name="description"
+      content="A from-scratch, typo-tolerant, search-as-you-type engine running in a Web Worker over 10,000 records: inverted index, radix trie with bounded Damerau-Levenshtein, tiered ranking with a per-hit explainer, bitset facets and a live latency readout."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f6f6f3" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0e1015" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Sift — typo-tolerant search-as-you-type in a Web Worker" />
+    <meta
+      property="og:description"
+      content="A from-scratch search engine over 10k records: inverted index, radix trie with bounded Damerau-Levenshtein, tiered ranking with a per-hit explainer, bitset facets and a live latency readout."
+    />
+    <meta property="og:image" content="/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Sift — typo-tolerant search-as-you-type" />
+    <meta name="twitter:description" content="From-scratch instant search engine in a Web Worker: typo tolerance, faceting, highlighting, a per-hit ranking explainer." />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%233556d8'/%3E%3Cpath d='M7 9h18l-7 8v6l-4 2v-8z' fill='none' stroke='%23fff' stroke-width='2.4' stroke-linejoin='round'/%3E%3Ccircle cx='23.5' cy='22.5' r='2.2' fill='%23fde68a'/%3E%3C/svg%3E"
+    />
   </head>
   <body>
     <div id="root"></div>

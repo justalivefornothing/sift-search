@@ -19,5 +19,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src/**/*.test.ts", "src/engine/**/*.ts", "src/data/**/*.ts", "scripts/**/*.ts"]
+  "include": ["src/**/*.test.ts", "src/engine/**/*.ts", "src/lib/**/*.ts", "src/worker/protocol.ts", "scripts/**/*.ts"]
 }

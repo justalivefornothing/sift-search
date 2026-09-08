@@ -183,7 +183,11 @@ describe('SearchIndex (bundled dataset)', () => {
 
   it('answers every query in well under the latency budget', () => {
     const queries = ['a', 'the', 'matrix', 'star wars', 'sci fi', 'inceptoin', 'the last lighthouse keeper', 'amelie']
-    for (const q of queries) index.search({ query: q })
-    for (const q of queries) expect(index.search({ query: q }).processingTimeMS).toBeLessThan(20)
+    for (const q of queries) index.search({ query: q }) // warm-up
+    // median of a few runs so a GC pause or a busy CI box cannot fail the suite
+    for (const q of queries) {
+      const runs = [0, 1, 2, 3, 4].map(() => index.search({ query: q }).processingTimeMS).sort((a, b) => a - b)
+      expect(runs[2], `query "${q}" runs: ${runs.join(', ')}`).toBeLessThan(20)
+    }
   })
 })
