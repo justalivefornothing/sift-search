@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { CRITERION_DIRECTION } from '../engine/ranker.ts'
 import { ATTRIBUTES, CRITERIA, type Criterion, type Hit } from '../engine/types.ts'
+import { fmtInt } from '../lib/format.ts'
 
 const LABELS: Record<Criterion, string> = {
   typos: 'Typos',
@@ -25,7 +26,7 @@ function formatValue(criterion: Criterion, value: number): string {
     case 'attribute':
       return ATTRIBUTES[value] ?? '—'
     case 'popularity':
-      return value.toLocaleString()
+      return fmtInt(value)
     default:
       return String(value)
   }

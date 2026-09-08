@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type KeyboardEvent } from 'react'
+import { fmtInt } from '../lib/format.ts'
 import { useStore } from '../store.ts'
 
 function CopyButton({ text, label }: { text: string; label: string }) {
@@ -180,7 +181,7 @@ export function Playground() {
                   <>
                     <span className="rounded bg-ok-soft px-1.5 py-px text-[10.5px] font-semibold text-ok">200 OK</span>
                     <span className="tnum">
-                      {playground.response.nbHits.toLocaleString()} hits · {timing?.engineMs.toFixed(2)} ms engine
+                      {fmtInt(playground.response.nbHits)} hits · {timing?.engineMs.toFixed(2)} ms engine
                       {timing ? ` · ${timing.roundTripMs.toFixed(2)} ms round-trip` : ''}
                     </span>
                   </>

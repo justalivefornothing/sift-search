@@ -1,10 +1,5 @@
+import { fmtInt, fmtMs } from '../lib/format.ts'
 import { useStore } from '../store.ts'
-
-function fmtMs(ms: number): string {
-  if (ms >= 100) return ms.toFixed(0)
-  if (ms >= 10) return ms.toFixed(1)
-  return ms.toFixed(2)
-}
 
 /**
  * Monospace readout of engine time, round-trip time and hit count. Re-runs a
@@ -45,7 +40,7 @@ export function LatencyPill() {
             ·
           </span>
           <span>
-            <span className="font-medium">{nbHits.toLocaleString()}</span>
+            <span className="font-medium">{fmtInt(nbHits)}</span>
             <span className="text-muted"> hits</span>
           </span>
         </>

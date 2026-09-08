@@ -2,7 +2,10 @@
  * URL <-> search state. Pure functions over URLSearchParams so the mapping is
  * unit-testable without a DOM:
  *
- *   ?q=matrix&genre=Sci-Fi&genre=Action&decade=1990s&rating=8%E2%80%939
+ *   ?q=matrix&genre=Sci-Fi&genre=Action&decade=1990s&rating=8%E2%80%939&explain=2
+ *
+ * `explain` is a read-only deep link: it opens the ranking explainer of the
+ * N-th hit (1-based) once results arrive.
  */
 import type { QueryParams } from '../engine/types.ts'
 
@@ -17,11 +20,16 @@ export interface SearchState {
   page: number
 }
 
+export interface ParsedUrlState extends SearchState {
+  /** 1-based rank of the hit whose explainer should open on load, if any */
+  explain: number | null
+}
+
 export function emptyRefinements(): Refinements {
   return { genre: [], decade: [], rating: [] }
 }
 
-export function parseSearchParams(search: string | URLSearchParams): SearchState {
+export function parseSearchParams(search: string | URLSearchParams): ParsedUrlState {
   const params = typeof search === 'string' ? new URLSearchParams(search) : search
   const refinements = emptyRefinements()
   for (const name of FACET_NAMES) {
@@ -29,10 +37,12 @@ export function parseSearchParams(search: string | URLSearchParams): SearchState
     refinements[name] = [...new Set(values)]
   }
   const page = Number(params.get('page') ?? 0)
+  const explain = Number(params.get('explain') ?? 0)
   return {
     query: params.get('q') ?? '',
     refinements,
     page: Number.isFinite(page) && page > 0 ? Math.floor(page) : 0,
+    explain: Number.isFinite(explain) && explain >= 1 ? Math.floor(explain) : null,
   }
 }
 

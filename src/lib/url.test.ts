@@ -17,6 +17,13 @@ describe('URL sync', () => {
     expect(state.refinements.decade).toEqual(['1990s'])
     expect(state.refinements.rating).toEqual(['8–9'])
     expect(state.page).toBe(2)
+    expect(state.explain).toBeNull()
+  })
+
+  it('parses the explain deep link', () => {
+    expect(parseSearchParams('?q=x&explain=3').explain).toBe(3)
+    expect(parseSearchParams('?q=x&explain=0').explain).toBeNull()
+    expect(parseSearchParams('?q=x&explain=abc').explain).toBeNull()
   })
 
   it('accepts comma-separated values and de-duplicates', () => {
@@ -39,7 +46,7 @@ describe('URL sync', () => {
     }
     const qs = serializeSearchParams(state)
     expect(qs.startsWith('?q=')).toBe(true)
-    expect(parseSearchParams(qs)).toEqual(state)
+    expect(parseSearchParams(qs)).toEqual({ ...state, explain: null })
   })
 
   it('serialises the empty state to an empty string', () => {

@@ -1,4 +1,5 @@
 import { useCallback } from 'react'
+import { fmtInt } from '../lib/format.ts'
 import { countRefinements } from '../lib/url.ts'
 import { HITS_PER_PAGE, useStore } from '../store.ts'
 import { HitCard } from './HitCard.tsx'
@@ -132,7 +133,7 @@ export function Results() {
         <h2 className="text-[13px] font-semibold text-ink">
           {hasQuery ? 'Results' : 'Browsing by popularity'}
           <span className="ml-2 font-mono text-[12px] font-normal text-muted tnum" aria-live="polite">
-            {response.nbHits === 0 ? '0 hits' : `${first.toLocaleString()}–${last.toLocaleString()} of ${response.nbHits.toLocaleString()}`}
+            {response.nbHits === 0 ? '0 hits' : `${fmtInt(first)}–${fmtInt(last)} of ${fmtInt(response.nbHits)}`}
           </span>
         </h2>
         <p className="text-[11.5px] text-muted">

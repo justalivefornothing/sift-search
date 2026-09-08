@@ -1,3 +1,4 @@
+import { fmtInt } from '../lib/format.ts'
 import { useStore } from '../store.ts'
 import { LatencyPill } from './LatencyPill.tsx'
 import { Logo } from './Logo.tsx'
@@ -43,13 +44,13 @@ export function Header() {
               title={`index built in ${ready.stats.indexTimeMs} ms · download ${ready.downloadMs} ms · JSON parse ${ready.parseMs} ms`}
             >
               <span>
-                <span className="text-ink-2">{ready.stats.records.toLocaleString()}</span> records
+                <span className="text-ink-2">{fmtInt(ready.stats.records)}</span> records
               </span>
               <span>
-                <span className="text-ink-2">{ready.stats.terms.toLocaleString()}</span> terms
+                <span className="text-ink-2">{fmtInt(ready.stats.terms)}</span> terms
               </span>
               <span>
-                <span className="text-ink-2">{ready.stats.postings.toLocaleString()}</span> postings
+                <span className="text-ink-2">{fmtInt(ready.stats.postings)}</span> postings
               </span>
               <span>
                 <span className="text-ink-2">{fmtBytes(ready.stats.approxBytes)}</span> index

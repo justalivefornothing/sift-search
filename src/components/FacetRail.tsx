@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { fmtInt } from '../lib/format.ts'
 import { RATING_BUCKETS } from '../engine/facets.ts'
 import { countRefinements, FACET_NAMES, type FacetName } from '../lib/url.ts'
 import { useStore } from '../store.ts'
@@ -76,7 +77,7 @@ function FacetGroup({ facet }: { facet: FacetName }) {
                   )}
                 </span>
                 <span className="relative z-10 min-w-0 flex-1 truncate">{value}</span>
-                <span className="relative z-10 font-mono text-[11.5px] text-muted tnum">{count.toLocaleString()}</span>
+                <span className="relative z-10 font-mono text-[11.5px] text-muted tnum">{fmtInt(count)}</span>
               </label>
             </li>
           )

@@ -51,6 +51,8 @@ interface StoreState extends SearchState {
   activeHit: number
   /** objectID of the hit whose explainer popover is open */
   explainedHit: string | null
+  /** ?explain=N deep link waiting for the first response */
+  pendingExplain: number | null
 
   playground: PlaygroundState
 
@@ -101,12 +103,16 @@ export const useStore = create<StoreState>((set, get) => {
     if (!client || get().status !== 'ready') return
     const result = await client.query(params)
     if (result.stale) return
-    set((s) => ({
-      response: result.response,
-      timing: { engineMs: result.response.processingTimeMS, roundTripMs: result.roundTripMs, tick: s.timing.tick + 1 },
-      activeHit: -1,
-      explainedHit: null,
-    }))
+    set((s) => {
+      const deepLink = s.pendingExplain !== null ? result.response.hits[s.pendingExplain - 1] : undefined
+      return {
+        response: result.response,
+        timing: { engineMs: result.response.processingTimeMS, roundTripMs: result.roundTripMs, tick: s.timing.tick + 1 },
+        activeHit: deepLink ? s.pendingExplain! - 1 : -1,
+        explainedHit: deepLink ? deepLink.objectID : null,
+        pendingExplain: null,
+      }
+    })
     if (!get().playground.open) get().syncPlaygroundBody()
   }
 
@@ -124,6 +130,7 @@ export const useStore = create<StoreState>((set, get) => {
     timing: { engineMs: 0, roundTripMs: 0, tick: 0 },
     activeHit: -1,
     explainedHit: null,
+    pendingExplain: null,
 
     playground: {
       open: false,
@@ -155,7 +162,7 @@ export const useStore = create<StoreState>((set, get) => {
     hydrateFromUrl() {
       if (typeof window === 'undefined') return
       const state = parseSearchParams(window.location.search)
-      set({ query: state.query, refinements: state.refinements, page: state.page })
+      set({ query: state.query, refinements: state.refinements, page: state.page, pendingExplain: state.explain })
     },
 
     setQuery(query) {

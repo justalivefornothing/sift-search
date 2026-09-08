@@ -22,7 +22,7 @@ export default function App() {
   const activeFilters = countRefinements(refinements)
 
   return (
-    <div className={`flex min-h-dvh flex-col transition-[padding] duration-300 ${playgroundOpen ? 'pb-[min(46vh,420px)]' : ''}`}>
+    <div className={`flex min-h-dvh flex-col transition-[padding] duration-300 ${playgroundOpen ? 'pb-[calc(min(46vh,420px)+2.75rem)]' : 'pb-11'}`}>
       <Header />
 
       <main className="flex-1">

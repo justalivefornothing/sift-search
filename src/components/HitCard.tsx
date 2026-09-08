@@ -1,5 +1,6 @@
 import { memo, useEffect, useRef } from 'react'
 import type { Hit } from '../engine/types.ts'
+import { fmtInt } from '../lib/format.ts'
 import { Highlighted } from './Highlighted.tsx'
 import { RankingPopover } from './RankingPopover.tsx'
 
@@ -34,7 +35,7 @@ export const HitCard = memo(function HitCard({ hit, rank, active, explained, has
 
   const summary = hasQuery
     ? `${info.typos} typo${info.typos === 1 ? '' : 's'} · ${info.words} word${info.words === 1 ? '' : 's'} · ${info.attributeName}`
-    : `popularity ${hit.popularity.toLocaleString()}`
+    : `popularity ${fmtInt(hit.popularity)}`
 
   return (
     <article
@@ -80,7 +81,7 @@ export const HitCard = memo(function HitCard({ hit, rank, active, explained, has
         </ul>
         <Stars rating={hit.rating} />
         <span className="hidden font-mono text-[11px] tnum sm:inline" title="popularity (custom ranking attribute)">
-          pop {hit.popularity.toLocaleString()}
+          pop {fmtInt(hit.popularity)}
         </span>
         <div className="ml-auto flex items-center gap-1.5">
           <span className="hidden font-mono text-[11px] text-muted md:inline" aria-hidden="true">
