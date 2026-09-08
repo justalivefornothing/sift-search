@@ -184,18 +184,18 @@ describe('SearchIndex (bundled dataset)', () => {
   it('answers every query in well under the latency budget', () => {
     const queries = ['a', 'the', 'matrix', 'star wars', 'sci fi', 'inceptoin', 'the last lighthouse keeper', 'amelie']
     for (const q of queries) index.search({ query: q }) // warm-up
-    // CPU time actually spent inside the engine (user + system), median of a few
-    // runs: wall-clock would also count time this process spends waiting for a
-    // contended CPU on a busy CI box, which says nothing about the engine.
-    const cpuMs = (fn: () => void): number => {
-      const before = process.cpuUsage()
-      fn()
-      const d = process.cpuUsage(before)
-      return (d.user + d.system) / 1000
-    }
+    // CPU time actually spent inside the engine (user + system), averaged over a
+    // batch: wall-clock would also count time this process spends waiting for a
+    // contended CPU on a busy CI box, which says nothing about the engine, and
+    // Windows reports CPU time in ~15 ms ticks so a batch is needed for resolution.
+    const BATCH = 20
     for (const q of queries) {
-      const runs = [0, 1, 2, 3, 4].map(() => cpuMs(() => index.search({ query: q }))).sort((a, b) => a - b)
-      expect(runs[2], `query "${q}" cpu ms: ${runs.map((r) => r.toFixed(2)).join(', ')}`).toBeLessThan(20)
+      const before = process.cpuUsage()
+      let wall = 0
+      for (let i = 0; i < BATCH; i++) wall += index.search({ query: q }).processingTimeMS
+      const d = process.cpuUsage(before)
+      const cpuPerQuery = (d.user + d.system) / 1000 / BATCH
+      expect(cpuPerQuery, `query "${q}": ${cpuPerQuery.toFixed(2)} ms CPU, ${(wall / BATCH).toFixed(2)} ms wall per run`).toBeLessThan(20)
     }
   })
 })
