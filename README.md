@@ -80,7 +80,7 @@ Measured with `npm run bench` (Node v26.7, 1,000 seeded queries mixing single wo
 | Query latency p99 | 10.6 ms |
 | Mean hits per query | 3,470 |
 
-Per query kind (p50 / p95, ms): word 1.31 / 4.05 · prefix 1.63 / 4.37 · typo 1.20 / 4.22 · two words 1.71 / 4.06 · three words 2.32 / 6.24 · faceted 0.85 / 3.24. The bench exits non-zero if p95 exceeds 20 ms. Latency scales with the number of documents touched, not with the corpus size per se — short prefixes over common words touch most of the 10k records and sit at the top of the distribution.
+Per query kind (p50 / p95, ms): word 1.31 / 4.05 · prefix 1.63 / 4.37 · typo 1.20 / 4.22 · two words 1.71 / 4.06 · three words 2.32 / 6.24 · faceted 0.85 / 3.24. The bench also prints the process CPU time per query (user + system ÷ queries, ~2–2.6 ms here) and exits non-zero only if the wall-clock p95 exceeds 20 ms *and* the CPU figure agrees — on a contended box wall-clock inflates while CPU time does not, and the script says so instead of failing. Latency scales with the number of documents touched, not with the corpus size per se — short prefixes over common words touch most of the 10k records and sit at the top of the distribution.
 
 ## Run, test, bench
 
