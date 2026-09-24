@@ -13,6 +13,7 @@ import { Bitset } from './bitset.ts'
 import { DEFAULT_FACETS, FacetIndex, parseFacetFilters, type FacetDefinition } from './facets.ts'
 import { highlight, snippet } from './highlight.ts'
 import { InvertedIndex } from './inverted-index.ts'
+import { boundedInteger } from './params.ts'
 import { describePlan, planQuery, type QueryPlan } from './query-planner.ts'
 import { findTieBreak } from './ranker.ts'
 import { Scorer } from './scorer.ts'
@@ -87,8 +88,7 @@ export class SearchIndex {
   search(params: QueryParams): QueryResponse {
     const t0 = now()
     const query = params.query ?? ''
-    const hitsPerPage = Math.min(MAX_HITS_PER_PAGE, Math.max(1, Math.floor(params.hitsPerPage ?? DEFAULT_HITS_PER_PAGE)))
-    const page = Math.max(0, Math.floor(params.page ?? 0))
+    const hitsPerPage = boundedInteger(params.hitsPerPage, DEFAULT_HITS_PER_PAGE, 1, MAX_HITS_PER_PAGE)
     const typoTolerance = params.typoTolerance ?? true
 
     const plan = planQuery(this.inverted, query, { typoTolerance, prefixLast: true })
@@ -101,9 +101,12 @@ export class SearchIndex {
     const { filtered, counts } = this.facets.apply(base, filters, params.facets)
     const nbHits = filtered.count()
     const nbPages = Math.ceil(nbHits / hitsPerPage)
+    // A URL can contain an arbitrarily large page. Clamp to a real page before
+    // multiplying, then cap the heap at the number of candidates it can retain.
+    const page = boundedInteger(params.page, 0, 0, Math.max(0, nbPages - 1))
 
     // top-K selection over the filtered candidates
-    const wanted = (page + 1) * hitsPerPage
+    const wanted = Math.min(nbHits, (page + 1) * hitsPerPage)
     const top = new TopK(wanted)
     if (hasWords) {
       const touched = this.scorer.touched
@@ -125,7 +128,8 @@ export class SearchIndex {
     let previous: Criteria | null = previousDoc >= 0 ? this.criteriaFor(previousDoc, hasWords) : null
     for (const doc of pageDocs) {
       const criteria = this.criteriaFor(doc, hasWords)
-      hits.push(this.buildHit(doc, plan, queryWords, criteria, previous ? findTieBreak(previous, criteria) : null, params.snippetLength))
+      hits.push(this.buildHit(doc, plan, queryWords, criteria, previous ? findTieBreak(previous, criteria) : null,
+        boundedInteger(params.snippetLength, 24, 1, Number.MAX_SAFE_INTEGER)))
       previous = criteria
     }
 

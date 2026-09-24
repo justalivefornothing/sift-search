@@ -112,10 +112,10 @@ export function Results() {
 
   const explain = useCallback((id: string, open: boolean) => setExplainedHit(open ? id : null), [setExplainedHit])
 
-  if (status === 'error') {
+  if (status === 'error' || errorMessage) {
     return (
       <div role="alert" className="rounded-2xl border border-danger/40 bg-surface p-6 text-[13.5px]">
-        <h3 className="font-semibold text-danger">The search worker failed</h3>
+        <h3 className="font-semibold text-danger">{status === 'error' ? 'The search worker failed' : 'Search request failed'}</h3>
         <p className="mt-1 font-mono text-[12.5px] text-ink-2">{errorMessage}</p>
       </div>
     )

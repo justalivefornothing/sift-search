@@ -3,6 +3,7 @@
  * Everything exported here runs identically in Node, a Web Worker and tests.
  */
 export * from './types.ts'
+export { isQueryParams, parseQueryBody } from './params.ts'
 export { tokenize, tokenizeToStrings, normalizeWord, type Token } from './tokenizer.ts'
 export { damerauLevenshtein } from './levenshtein.ts'
 export { Trie, type FuzzyMatch } from './trie.ts'

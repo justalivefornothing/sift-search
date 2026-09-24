@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { planQuery, typoBudget } from './query-planner.ts'
 import { SearchIndex } from './search-index.ts'
 import type { SearchRecord } from './types.ts'
+import { parseSearchParams } from '../lib/url.ts'
 
 function rec(partial: Partial<SearchRecord> & { title: string }): SearchRecord {
   return {
@@ -151,6 +152,39 @@ describe('SearchIndex (fixture)', () => {
     expect(index.stats.records).toBe(FIXTURE.length)
     expect(index.stats.terms).toBeGreaterThan(20)
     expect(index.stats.trieNodes).toBeGreaterThan(0)
+  })
+
+  it('clamps an enormous URL page before allocating the selection heap', () => {
+    const requested = parseSearchParams('?page=1e308').page
+    const result = index.search({ query: '', page: requested, hitsPerPage: 3 })
+    const lastPage = index.search({ query: '', page: 2, hitsPerPage: 3 })
+    expect(result.page).toBe(2)
+    expect(result.hits).toEqual(lastPage.hits)
+    expect(result.params).toContain('page=2')
+  })
+
+  it('bounds huge page sizes and keeps empty result sets safe', () => {
+    const result = index.search({ query: '', hitsPerPage: 1e308, page: 1e308 })
+    expect(result.hitsPerPage).toBe(100)
+    expect(result.page).toBe(0)
+    expect(result.hits).toHaveLength(FIXTURE.length)
+    expect(index.search({ query: 'zzzzzzzz', page: 1e308 }).page).toBe(0)
+    const empty = new SearchIndex([]).search({ query: '', page: 1e308, hitsPerPage: 1e308 })
+    expect(empty.hits).toEqual([])
+    expect(empty.nbPages).toBe(0)
+  })
+
+  it('normalizes non-finite and invalid pagination from direct JavaScript callers', () => {
+    for (const value of [NaN, Infinity, -Infinity, 'bad', null, {}, []]) {
+      const result = index.search({ query: '', page: value as number, hitsPerPage: value as number })
+      expect(result.page).toBe(0)
+      expect(result.hitsPerPage).toBe(20)
+      expect(result.hits).toHaveLength(FIXTURE.length)
+    }
+    const result = index.search({ query: '', page: -5, hitsPerPage: 0 })
+    expect(result.page).toBe(0)
+    expect(result.hitsPerPage).toBe(1)
+    expect(index.search({ query: '', page: 1.9, hitsPerPage: 2.9 }).page).toBe(1)
   })
 })
 
