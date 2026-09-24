@@ -6,6 +6,7 @@
  */
 import { create } from 'zustand'
 import type { QueryParams, QueryResponse } from './engine/types.ts'
+import { parseQueryBody } from './engine/params.ts'
 import {
   emptyRefinements,
   parseSearchParams,
@@ -83,6 +84,8 @@ function playgroundBodyFor(params: QueryParams): string {
 }
 
 export const useStore = create<StoreState>((set, get) => {
+  let queryVersion = 0
+  let playgroundVersion = 0
   const currentParams = (): QueryParams => {
     const { query, refinements, page } = get()
     return toQueryParams({ query, refinements, page }, HITS_PER_PAGE)
@@ -97,23 +100,32 @@ export const useStore = create<StoreState>((set, get) => {
   }
 
   const runQuery = async (): Promise<void> => {
+    const version = ++queryVersion
     const params = currentParams()
     pushUrl()
     // before the index is ready the 'ready' handler re-runs the current state
     if (!client || get().status !== 'ready') return
-    const result = await client.query(params)
-    if (result.stale) return
-    set((s) => {
-      const deepLink = s.pendingExplain !== null ? result.response.hits[s.pendingExplain - 1] : undefined
-      return {
-        response: result.response,
-        timing: { engineMs: result.response.processingTimeMS, roundTripMs: result.roundTripMs, tick: s.timing.tick + 1 },
-        activeHit: deepLink ? s.pendingExplain! - 1 : -1,
-        explainedHit: deepLink ? deepLink.objectID : null,
-        pendingExplain: null,
-      }
-    })
-    if (!get().playground.open) get().syncPlaygroundBody()
+    set({ errorMessage: null })
+    try {
+      const result = await client.query(params)
+      if (result.stale || version !== queryVersion) return
+      set((s) => {
+        const deepLink = s.pendingExplain !== null ? result.response.hits[s.pendingExplain - 1] : undefined
+        return {
+          response: result.response,
+          page: result.response.page,
+          errorMessage: null,
+          timing: { engineMs: result.response.processingTimeMS, roundTripMs: result.roundTripMs, tick: s.timing.tick + 1 },
+          activeHit: deepLink ? s.pendingExplain! - 1 : -1,
+          explainedHit: deepLink ? deepLink.objectID : null,
+          pendingExplain: null,
+        }
+      })
+      pushUrl()
+      if (!get().playground.open) get().syncPlaygroundBody()
+    } catch (error) {
+      if (version === queryVersion) set({ errorMessage: error instanceof Error ? error.message : String(error) })
+    }
   }
 
   return {
@@ -151,8 +163,8 @@ export const useStore = create<StoreState>((set, get) => {
         },
         error: (message) => set({ status: 'error', errorMessage: message }),
       })
-      client.init(DATASET_URL)
       set({ status: 'loading' })
+      client.init(DATASET_URL)
       window.addEventListener('popstate', () => {
         get().hydrateFromUrl()
         void runQuery()
@@ -212,9 +224,10 @@ export const useStore = create<StoreState>((set, get) => {
     },
 
     setPlaygroundBody(body) {
+      playgroundVersion++
       let error: string | null = null
       try {
-        JSON.parse(body)
+        parseQueryBody(body)
       } catch (err) {
         error = err instanceof Error ? err.message : 'invalid JSON'
       }
@@ -222,6 +235,7 @@ export const useStore = create<StoreState>((set, get) => {
     },
 
     syncPlaygroundBody() {
+      playgroundVersion++
       const params = currentParams()
       set((s) => ({
         playground: { ...s.playground, body: playgroundBodyFor(params), error: null, response: s.response, timing: s.timing },
@@ -229,25 +243,32 @@ export const useStore = create<StoreState>((set, get) => {
     },
 
     async runPlayground() {
+      const version = ++playgroundVersion
       const { playground } = get()
       let params: QueryParams
       try {
-        const parsed = JSON.parse(playground.body) as Partial<QueryParams>
-        params = { ...parsed, query: typeof parsed.query === 'string' ? parsed.query : '' }
+        params = parseQueryBody(playground.body)
       } catch (err) {
         set((s) => ({ playground: { ...s.playground, error: err instanceof Error ? err.message : 'invalid JSON' } }))
         return
       }
       if (!client || get().status !== 'ready') return
-      const result = await client.query(params)
-      set((s) => ({
-        playground: {
-          ...s.playground,
-          error: null,
-          response: result.response,
-          timing: { engineMs: result.response.processingTimeMS, roundTripMs: result.roundTripMs, tick: 0 },
-        },
-      }))
+      try {
+        const result = await client.query(params, 'playground')
+        if (result.stale || version !== playgroundVersion) return
+        set((s) => ({
+          playground: {
+            ...s.playground,
+            error: null,
+            response: result.response,
+            timing: { engineMs: result.response.processingTimeMS, roundTripMs: result.roundTripMs, tick: 0 },
+          },
+        }))
+      } catch (error) {
+        if (version === playgroundVersion) {
+          set((s) => ({ playground: { ...s.playground, error: error instanceof Error ? error.message : String(error) } }))
+        }
+      }
     },
   }
 })

@@ -8,7 +8,7 @@
  */
 import { SearchIndex } from '../engine/search-index.ts'
 import type { SearchRecord } from '../engine/types.ts'
-import { isWorkerRequest, type WorkerRequest, type WorkerResponse } from './protocol.ts'
+import { isWorkerRequest, requestId, type WorkerRequest, type WorkerResponse } from './protocol.ts'
 
 const scope = self as unknown as {
   postMessage(message: WorkerResponse): void
@@ -84,13 +84,13 @@ function handle(request: WorkerRequest): void {
       return
     case 'query': {
       if (!index) {
-        post({ type: 'error', message: 'query received before the index was ready' })
+        post({ type: 'error', id: request.id, message: 'query received before the index was ready' })
         return
       }
       try {
         post({ type: 'result', id: request.id, response: index.search(request.params) })
       } catch (err) {
-        post({ type: 'error', message: err instanceof Error ? err.message : String(err) })
+        post({ type: 'error', id: request.id, message: err instanceof Error ? err.message : String(err) })
       }
       return
     }
@@ -98,5 +98,10 @@ function handle(request: WorkerRequest): void {
 }
 
 scope.onmessage = (event: MessageEvent<unknown>) => {
-  if (isWorkerRequest(event.data)) handle(event.data)
+  if (isWorkerRequest(event.data)) {
+    handle(event.data)
+  } else {
+    const id = requestId(event.data)
+    if (id !== undefined) post({ type: 'error', id, message: 'Invalid query parameters' })
+  }
 }

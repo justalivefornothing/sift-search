@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type KeyboardEvent } from 'react'
+import { parseQueryBody } from '../engine/params.ts'
 import { fmtInt } from '../lib/format.ts'
 import { useStore } from '../store.ts'
 
@@ -55,6 +56,14 @@ export function Playground() {
   const run = useStore((s) => s.runPlayground)
   const sync = useStore((s) => s.syncPlaygroundBody)
 
+  const validRequest = useMemo(() => {
+    try {
+      parseQueryBody(playground.body)
+      return true
+    } catch {
+      return false
+    }
+  }, [playground.body])
   const responseText = useMemo(() => (playground.response ? JSON.stringify(playground.response, null, 2) : ''), [playground.response])
   const curl = useMemo(
     () => `curl -X POST https://sift.local/1/indexes/records/query \\\n  -H 'content-type: application/json' \\\n  -d '${playground.body.replace(/\n\s*/g, ' ')}'`,
@@ -128,7 +137,7 @@ export function Playground() {
               <div className="flex items-center gap-2 font-mono text-[11.5px] text-muted">
                 <span className="font-semibold text-ink-2">Request</span>
                 <span className="hidden sm:inline">application/json · editable</span>
-                {playground.error && <span className="text-danger">invalid JSON</span>}
+                {playground.error && <span className="text-danger">request error</span>}
               </div>
               <div className="flex items-center gap-1.5">
                 <button
@@ -143,7 +152,7 @@ export function Playground() {
                 <button
                   type="button"
                   onClick={() => void run()}
-                  disabled={status !== 'ready' || playground.error !== null}
+                  disabled={status !== 'ready' || !validRequest}
                   title="Run (Ctrl/⌘ + Enter)"
                   className="inline-flex h-7 items-center gap-1.5 rounded-md bg-accent px-2.5 font-mono text-[11.5px] font-medium text-accent-ink transition-[filter,opacity] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
                 >

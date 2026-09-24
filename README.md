@@ -4,7 +4,7 @@
 
 ![Sift searching "thief dreams" with the ranking explainer open on hit #2](docs/screenshot.png)
 
-No search library, no server, no network at runtime. Everything in `src/engine/` — tokenizer, compressed radix trie, bounded Damerau-Levenshtein traversal, positional inverted index, tiered ranker, bitset facets, highlighter — is hand-written, dependency-free TypeScript that runs identically in Node, in a Web Worker and in the test suite.
+No search library or external search service. The browser loads the bundled dataset once; queries then run locally in a Web Worker with no network requests. The production modules in `src/engine/` — tokenizer, compressed radix trie, bounded Damerau-Levenshtein traversal, positional inverted index, tiered ranker, bitset facets, highlighter — are dependency-free TypeScript that runs in Node, in a Web Worker and in the test suite.
 
 ## Why I built this
 
@@ -21,7 +21,7 @@ Instant-search products feel like magic: you mistype "matrx" and *The Matrix* is
 - **Highlighting and snippets** — matched tokens wrapped in `<mark>`, snippets windowed around the densest cluster of matches.
 - **Web Worker execution** — hand-rolled `postMessage` protocol (no Comlink). Every keystroke queries with **0 ms debounce**; out-of-order answers are detected by request id and dropped. The monospace latency pill shows engine ms, UI↔worker round-trip ms and hit count, and flashes green on every result.
 - **"Why #N?" explainer** per hit — the six-criterion vector, the criterion that separated it from the previous hit, and the index terms each query word matched (exact / prefix / typo count).
-- **API playground** — a bottom drawer with an editable mock `POST /1/indexes/records/query` JSON body, the raw engine response, and copy buttons (response JSON and as `curl`). `Ctrl/⌘ + Enter` runs.
+- **API playground** — a bottom drawer with an editable mock `POST /1/indexes/records/query` JSON body, the raw engine response, and copy buttons (response JSON and as `curl`). `Ctrl/⌘ + Enter` runs. Invalid request bodies produce recoverable errors; page sizes are capped at 100 and out-of-range pages are clamped to the final available page.
 - **Keyboard navigation** — `/` focuses the bar, `↑`/`↓` move the active hit, `Enter` opens its explainer, `Esc` closes / clears.
 - **URL-synced state** — `?q=&genre=&decade=&rating=&page=` round-trips through the address bar; `&explain=N` deep-links to an open explainer.
 - **Zero-results state** with "did you mean" suggestions from the trie, verified against the index so only queries that actually return hits are offered.
