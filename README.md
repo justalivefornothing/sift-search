@@ -1,14 +1,25 @@
 # Sift
 
-**A from-scratch, typo-tolerant, search-as-you-type engine running in a Web Worker over 10,000 records — with faceting, highlighting, a live latency readout and a per-hit "why does this rank here" explainer.**
+A browser search experiment with typo tolerance, facets and a ranking explainer. It searches 10,000 bundled, mostly synthetic movie-style records in a Web Worker.
 
 ![Sift searching "thief dreams" with the ranking explainer open on hit #2](docs/screenshot.png)
 
 No search library or external search service. The browser loads the bundled dataset once; queries then run locally in a Web Worker with no network requests. The production modules in `src/engine/` — tokenizer, compressed radix trie, bounded Damerau-Levenshtein traversal, positional inverted index, tiered ranker, bitset facets, highlighter — are dependency-free TypeScript that runs in Node, in a Web Worker and in the test suite.
 
-## Why I built this
+## Scope
 
-Instant-search products feel like magic: you mistype "matrx" and *The Matrix* is already on screen before you notice the typo. I wanted to understand exactly what happens between keystroke and result — not by wiring up a hosted API, but by building the whole pipeline and making every ranking decision inspectable. The result is a small engine that answers a query over 10k records in a couple of milliseconds, plus a UI that shows the raw criteria vector behind each hit and *which* criterion broke the tie against the hit above it.
+The demo makes the path from a query to its results inspectable. Try `matrx` to find *The Matrix*, then open a hit's ranking explainer to see its criteria and the first difference from the hit above it. The API playground runs the same local engine; its displayed HTTP request is an example, not a running search service.
+
+## Current limits
+
+- The bundled dataset has 10,000 records but only 1,270 distinct indexed terms. Its benchmark does not establish performance or relevance on a larger, more varied corpus.
+- Queries use at most 16 words. Expansion keeps at most 64 typo candidates and 4,096 zero-typo candidates per word, so matching terms can be omitted when those limits are reached. See [query-planner.ts](src/engine/query-planner.ts).
+- A record can match any query word. Ranking prioritizes fewer typos before more matched words; this is a fixed rule, not a relevance model trained on user judgments.
+- The index is rebuilt from the full dataset on page load. There is no incremental document update API or persistent index.
+
+## A maintenance example
+
+[PR #1: Bound search pagination and recover from invalid requests](https://github.com/justalivefornothing/sift-search/pull/1) fixes two failure paths. An enormous page number previously flowed into the selection heap's allocation; it is now clamped to an available page before allocation. Invalid playground requests now return a recoverable error without disabling ordinary search. The [pagination regressions](src/engine/search-index.test.ts) and [request recovery tests](src/store.test.ts) exercise those cases.
 
 ## Features
 
@@ -17,7 +28,7 @@ Instant-search products feel like magic: you mistype "matrx" and *The Matrix* is
 - **Positional inverted index** — per-attribute postings (`title`, `genres`, `description`) with token positions, built as a two-pass counting sort over typed arrays.
 - **Compressed radix trie** with prefix enumeration and **bounded Damerau-Levenshtein traversal** (row-by-row DP carried down trie edges, subtree pruning when the row minimum exceeds the budget). 1 typo for words ≥ 4 chars, 2 for ≥ 8. In prefix mode a term matches if *any* prefix of it is within budget — what search-as-you-type needs for the word being typed.
 - **Tiered ranking**, exactly in this order: typos → matched words → proximity → attribute (title > genres > description) → exactness (exact > prefix) → popularity. The six bounded integers are packed into one double so the hot path sorts plain numbers; the same vector is exposed unpacked on every hit.
-- **Faceted filtering with live counts** — genre, decade and rating bucket, each value a `Uint32Array` bitset. Multi-select within a facet is OR, across facets is AND; counts are *disjunctive* (what you would get by adding that value), computed with word-parallel AND + popcount.
+- **Faceted filtering with live counts** — genre, decade and rating bucket, each value a `Uint32Array` bitset. Multi-select within a facet is OR, across facets is AND. Counts are *disjunctive*: each value is counted under the other facets' filters, ignoring selections within its own facet. They are computed with word-parallel AND + popcount.
 - **Highlighting and snippets** — matched tokens wrapped in `<mark>`, snippets windowed around the densest cluster of matches.
 - **Web Worker execution** — hand-rolled `postMessage` protocol (no Comlink). Every keystroke queries with **0 ms debounce**; out-of-order answers are detected by request id and dropped. The monospace latency pill shows engine ms, UI↔worker round-trip ms and hit count, and flashes green on every result.
 - **"Why #N?" explainer** per hit — the six-criterion vector, the criterion that separated it from the previous hit, and the index terms each query word matched (exact / prefix / typo count).
@@ -43,7 +54,7 @@ flowchart LR
     R --> FB[facet bitsets<br/>genre · decade · rating]
   end
 
-  subgraph query["Per keystroke (≈1–5 ms)"]
+  subgraph query["Per keystroke"]
     Q[query string] --> P[planner<br/>typo budget per word]
     P -->|"fuzzy(word, k, prefix)"| TR
     TR -->|"candidate terms + typo cost"| S[scorer<br/>one postings scan]
@@ -59,28 +70,27 @@ flowchart LR
 
 **Query planning.** The query is tokenized; every word gets a typo budget (0 / 1 / 2 by length) and the last word is treated as a prefix unless the query ends in whitespace. Each word is expanded over the trie into candidate index terms with a cost: exact (0 typos, full match), prefix (0 typos, partial), or typo (1–2 edits, ranked by document frequency and capped).
 
-**Scoring.** A single pass over the postings of every candidate accumulates, per document, a matched-word bitmask, the minimum typo count per word, an exact-match bitmask, the best attribute, and a linked chain of (word, attribute, term, positions) entries. All scratch state is typed arrays sized once per index and reused, so a query allocates almost nothing. Proximity is computed lazily (only for documents that matched ≥ 2 words) as the summed minimum in-attribute distance between consecutive query words.
+**Scoring.** A single pass over the postings of every candidate accumulates, per document, a matched-word bitmask, the minimum typo count per word, an exact-match bitmask, the best attribute, and a linked chain of (word, attribute, term, positions) entries. Per-document scratch arrays are reused across queries; entry arrays grow as needed, and query planning, filtering and result construction still allocate memory. Proximity is computed lazily (only for documents that matched ≥ 2 words) as the summed minimum in-attribute distance between consecutive query words.
 
 **Ranking.** `packScore()` folds the six criteria into a 46-bit integer inside a double, so a bounded min-heap of size `(page + 1) × hitsPerPage` selects the page in O(n log k). For the returned page, the same criteria are unpacked and `findTieBreak(previous, current)` reports the first criterion that differs — that is what the "Why #N?" popover shows.
 
-**Facets.** The scorer's match bitset is ANDed with each facet's OR-ed selection to produce the filtered result; per-value counts are `popcount(scope ∧ bits(value))` where `scope` excludes the facet's own selection, giving the "what if I also pick this" numbers instant-search UIs expect.
+**Facets.** The scorer's match bitset is ANDed with each facet's OR-ed selection to produce the filtered result. Per-value counts are `popcount(scope ∧ bits(value))` where `scope` excludes the facet's own selection. A value's count is not the total size of the union that would result from adding it to existing selections.
 
 ## Performance
 
-Measured with `npm run bench` (Node v26.7, 1,000 seeded queries mixing single words, as-you-type prefixes, injected typos, two- and three-word phrases and faceted queries; numbers from `docs/bench.json` on an otherwise idle laptop):
+The checked-in [benchmark snapshot](docs/bench.json), recorded on September 7, 2026 with Node v26.7, reports the following results for the bundled dataset. `npm run bench` uses 1,000 seeded queries mixing single words, as-you-type prefixes, injected typos, two- and three-word phrases and faceted queries after a warm-up. These are engine timings, not browser interaction latency. The snapshot does not record the CPU model or operating system.
 
 | Metric | Value |
 | --- | --- |
 | Records / distinct terms / postings | 10,000 / 1,270 / 375,025 |
 | Index build (Node) | 452 ms |
-| Index build (worker, Chromium) | ~280 ms |
 | Approx. typed-array footprint | 3.8 MB |
 | Query latency p50 | **1.46 ms** |
 | Query latency p95 | **4.78 ms** |
 | Query latency p99 | 10.6 ms |
 | Mean hits per query | 3,470 |
 
-Per query kind (p50 / p95, ms): word 1.31 / 4.05 · prefix 1.63 / 4.37 · typo 1.20 / 4.22 · two words 1.71 / 4.06 · three words 2.32 / 6.24 · faceted 0.85 / 3.24. The bench also prints the process CPU time per query (user + system ÷ queries, ~2–2.6 ms here) and exits non-zero only if the wall-clock p95 exceeds 20 ms *and* the CPU figure agrees — on a contended box wall-clock inflates while CPU time does not, and the script says so instead of failing. Latency scales with the number of documents touched, not with the corpus size per se — short prefixes over common words touch most of the 10k records and sit at the top of the distribution.
+Per query kind (p50 / p95, ms): word 1.31 / 4.05 · prefix 1.63 / 4.37 · typo 1.20 / 4.22 · two words 1.71 / 4.06 · three words 2.32 / 6.24 · faceted 0.85 / 3.24. The current bench also prints mean process CPU time per query (user + system divided by queries). It fails when wall-clock p95 exceeds 20 ms and mean CPU time exceeds 10 ms; otherwise a high p95 produces a contention warning. That heuristic does not prove contention or guarantee acceptable tail latency. Corpus size, vocabulary, matching postings and page depth all affect the work performed.
 
 ## Run, test, bench
 
