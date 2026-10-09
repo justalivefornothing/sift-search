@@ -78,13 +78,13 @@ flowchart LR
 
 ## Performance
 
-The checked-in [benchmark snapshot](docs/bench.json), recorded on September 7, 2026 with Node v26.7, reports the following results for the bundled dataset. `npm run bench` uses 1,000 seeded queries mixing single words, as-you-type prefixes, injected typos, two- and three-word phrases and faceted queries after a warm-up. These are engine timings, not browser interaction latency. The snapshot does not record the CPU model or operating system.
+The checked-in [benchmark snapshot](docs/bench.json), timestamped `2026-09-07T18:50:33.959Z` with Node v26.7, reports the following results for the bundled dataset. `npm run bench` uses 1,000 seeded queries mixing single words, as-you-type prefixes, injected typos, two- and three-word phrases and faceted queries after a warm-up. These are engine timings, not browser interaction latency. The snapshot does not record the CPU model or operating system.
 
 | Metric | Value |
 | --- | --- |
 | Records / distinct terms / postings | 10,000 / 1,270 / 375,025 |
 | Index build (Node) | 452 ms |
-| Approx. typed-array footprint | 3.8 MB |
+| Reported index arrays (excludes scorer, trie and record objects) | 3.8 MiB |
 | Query latency p50 | **1.46 ms** |
 | Query latency p95 | **4.78 ms** |
 | Query latency p99 | 10.6 ms |
